@@ -35,7 +35,8 @@ resource "scaleway_domain_record" "validation" {
 
 # Wait for domain validation (default timeout is 30 minutes)
 resource "scaleway_domain_external_domain_validated" "example" {
-  domain = scaleway_domain_external_domain.example.domain
+  domain     = scaleway_domain_external_domain.example.domain
+  depends_on = [scaleway_domain_record.validation]
 }
 
 # After validation, we can use the domain's NS servers

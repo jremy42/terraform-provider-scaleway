@@ -38,6 +38,7 @@ func TestAccDomainExternalDomainValidated_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("scaleway_domain_external_domain_validated.example", "id"),
 					resource.TestCheckResourceAttrSet("scaleway_domain_external_domain_validated.example", "organization_id"),
 					resource.TestCheckResourceAttrSet("scaleway_domain_external_domain_validated.example", "ns_servers.#"),
+					resource.TestCheckResourceAttr("scaleway_domain_external_domain_validated.example", "validated", "true"),
 					resource.TestCheckResourceAttrPair(
 						"data.scaleway_domain_external_domain.read", "domain",
 						"scaleway_domain_external_domain.example", "domain",
@@ -97,7 +98,8 @@ resource "scaleway_domain_record" "validation" {
 }
 
 resource "scaleway_domain_external_domain_validated" "example" {
-  domain = scaleway_domain_external_domain.example.domain
+  domain     = scaleway_domain_external_domain.example.domain
+  depends_on = [scaleway_domain_record.validation]
 }
 
 data "scaleway_domain_external_domain" "read" {
