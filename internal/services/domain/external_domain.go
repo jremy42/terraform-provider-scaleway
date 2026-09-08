@@ -114,7 +114,7 @@ func persistExternalDomainFromRegistrarResponse(resp *domain.Domain, d *schema.R
 	_ = d.Set("domain", resp.Domain)
 	_ = d.Set("project_id", resp.ProjectID)
 	_ = d.Set("organization_id", resp.OrganizationID)
-	_ = d.Set("status", resp.Status)
+	_ = d.Set("status", resp.Status.String())
 
 	if len(resp.DNSZones) > 0 {
 		_ = d.Set("ns_servers", resp.DNSZones[0].NsDefault)
