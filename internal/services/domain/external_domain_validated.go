@@ -49,6 +49,11 @@ func externalDomainValidatedSchema() map[string]*schema.Schema {
 			Description: "List of default NS servers for the domain once validated.",
 			Computed:    true,
 		},
+		"validated": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "True when the external domain status is active.",
+		},
 	}
 }
 
@@ -105,6 +110,8 @@ func persistExternalDomainValidatedFromRegistrarResponse(resp *domainSDK.Domain,
 			return fmt.Errorf("error setting ns_servers: %w", err)
 		}
 	}
+
+	_ = d.Set("validated", resp.Status == domainSDK.DomainStatusActive)
 
 	return nil
 }
