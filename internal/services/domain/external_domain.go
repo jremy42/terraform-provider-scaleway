@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -105,19 +106,23 @@ func resourceExternalDomainRead(ctx context.Context, d *schema.ResourceData, m a
 		return diag.FromErr(err)
 	}
 
-	persistExternalDomainFromRegistrarResponse(resp, d)
+	if err := persistExternalDomainFromRegistrarResponse(resp, d); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func persistExternalDomainFromRegistrarResponse(resp *domain.Domain, d *schema.ResourceData) {
+func persistExternalDomainFromRegistrarResponse(resp *domain.Domain, d *schema.ResourceData) error {
 	_ = d.Set("domain", resp.Domain)
 	_ = d.Set("project_id", resp.ProjectID)
 	_ = d.Set("organization_id", resp.OrganizationID)
 	_ = d.Set("status", resp.Status.String())
 
 	if len(resp.DNSZones) > 0 {
-		_ = d.Set("ns_servers", resp.DNSZones[0].NsDefault)
+		if err := d.Set("ns_servers", resp.DNSZones[0].NsDefault); err != nil {
+			return fmt.Errorf("error setting ns_servers: %w", err)
+		}
 	}
 
 	validationToken := ""
@@ -126,6 +131,8 @@ func persistExternalDomainFromRegistrarResponse(resp *domain.Domain, d *schema.R
 	}
 
 	_ = d.Set("validation_token", validationToken)
+
+	return nil
 }
 
 func resourceExternalDomainDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {

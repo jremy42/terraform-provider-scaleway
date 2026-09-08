@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -85,19 +86,25 @@ func resourceExternalDomainValidatedRead(ctx context.Context, d *schema.Resource
 		return diag.FromErr(err)
 	}
 
-	persistExternalDomainValidatedFromRegistrarResponse(resp, d)
+	if err := persistExternalDomainValidatedFromRegistrarResponse(resp, d); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func persistExternalDomainValidatedFromRegistrarResponse(resp *domainSDK.Domain, d *schema.ResourceData) {
+func persistExternalDomainValidatedFromRegistrarResponse(resp *domainSDK.Domain, d *schema.ResourceData) error {
 	_ = d.Set("domain", resp.Domain)
 	_ = d.Set("project_id", resp.ProjectID)
 	_ = d.Set("organization_id", resp.OrganizationID)
 
 	if len(resp.DNSZones) > 0 {
-		_ = d.Set("ns_servers", resp.DNSZones[0].NsDefault)
+		if err := d.Set("ns_servers", resp.DNSZones[0].NsDefault); err != nil {
+			return fmt.Errorf("error setting ns_servers: %w", err)
+		}
 	}
+
+	return nil
 }
 
 func resourceExternalDomainValidatedDelete(_ context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {

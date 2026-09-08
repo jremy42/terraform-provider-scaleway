@@ -44,7 +44,10 @@ func dataSourceExternalDomainRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(resp.Domain)
-	persistExternalDomainFromRegistrarResponse(resp, d)
+
+	if err := persistExternalDomainFromRegistrarResponse(resp, d); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
