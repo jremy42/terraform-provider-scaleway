@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,6 +95,7 @@ func resourceExternalDomainRead(ctx context.Context, d *schema.ResourceData, m a
 	resp, err := registrarAPI.GetDomain(&domain.RegistrarAPIGetDomainRequest{Domain: d.Id()}, scw.WithContext(ctx))
 	if err != nil {
 		if httperrors.Is404(err) {
+			log.Printf("[WARN] domain external domain (%s) not found, removing from state", d.Id())
 			d.SetId("")
 
 			return nil
