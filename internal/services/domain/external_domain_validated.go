@@ -39,12 +39,8 @@ func externalDomainValidatedSchema() map[string]*schema.Schema {
 			Required:    true,
 			ForceNew:    true,
 		},
-		"project_id": account.ProjectIDSchema(),
-		"organization_id": {
-			Type:        schema.TypeString,
-			Description: "The organization ID the domain is associated with.",
-			Computed:    true,
-		},
+		"project_id":      account.ProjectIDSchema(),
+		"organization_id": account.OrganizationIDSchema(),
 		"ns_servers": {
 			Type:        schema.TypeList,
 			Elem:        &schema.Schema{Type: schema.TypeString},
