@@ -74,7 +74,7 @@ func resourceExternalDomainCreate(ctx context.Context, d *schema.ResourceData, m
 
 	domainName := d.Get("domain").(string)
 
-	_, err = registrarAPI.RegisterExternalDomain(&domain.RegistrarAPIRegisterExternalDomainRequest{
+	resp, err := registrarAPI.RegisterExternalDomain(&domain.RegistrarAPIRegisterExternalDomainRequest{
 		Domain:    domainName,
 		ProjectID: projectID,
 	}, scw.WithContext(ctx))
@@ -85,6 +85,10 @@ func resourceExternalDomainCreate(ctx context.Context, d *schema.ResourceData, m
 	if err := identity.SetGlobalIdentity(d, domainName); err != nil {
 		return diag.FromErr(err)
 	}
+
+	_ = d.Set("validation_token", resp.ValidationToken)
+	_ = d.Set("organization_id", resp.OrganizationID)
+	_ = d.Set("project_id", resp.ProjectID)
 
 	return resourceExternalDomainRead(ctx, d, m)
 }
