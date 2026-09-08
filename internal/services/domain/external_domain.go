@@ -120,9 +120,12 @@ func persistExternalDomainFromRegistrarResponse(resp *domain.Domain, d *schema.R
 		_ = d.Set("ns_servers", resp.DNSZones[0].NsDefault)
 	}
 
-	if resp.ExternalDomainRegistrationStatus != nil && resp.ExternalDomainRegistrationStatus.ValidationToken != "" {
-		_ = d.Set("validation_token", resp.ExternalDomainRegistrationStatus.ValidationToken)
+	validationToken := ""
+	if resp.ExternalDomainRegistrationStatus != nil {
+		validationToken = resp.ExternalDomainRegistrationStatus.ValidationToken
 	}
+
+	_ = d.Set("validation_token", validationToken)
 }
 
 func resourceExternalDomainDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
