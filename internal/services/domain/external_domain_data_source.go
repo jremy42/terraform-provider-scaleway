@@ -13,7 +13,7 @@ import (
 )
 
 func DataSourceExternalDomain() *schema.Resource {
-	dsSchema := datasource.SchemaFromResourceSchema(externalDomainSchema())
+	dsSchema := datasource.SchemaFromResourceSchema(ResourceExternalDomain().SchemaFunc())
 	datasource.FixDatasourceSchemaFlags(dsSchema, true, "domain")
 	datasource.AddOptionalFieldsToSchema(dsSchema, "project_id")
 
