@@ -9,15 +9,13 @@ import (
 )
 
 func TestAccDataSourceDomainExternalDomain_Basic(t *testing.T) {
-	if acctest.TestDomain == "" {
-		t.Skip("Test skipped: SCW_TEST_DOMAIN must be set")
+	domainName, _, _, ok := externalDomainTestParts(t)
+	if !ok {
+		return
 	}
 
 	tt := acctest.NewTestTools(t)
 	defer tt.Cleanup()
-
-	subdomain := "tf-acc-ext-ds"
-	domainName := fmt.Sprintf("%s.%s", subdomain, acctest.TestDomain)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: tt.ProviderFactories,
@@ -26,6 +24,7 @@ func TestAccDataSourceDomainExternalDomain_Basic(t *testing.T) {
 			{
 				Config: testAccDataSourceDomainExternalDomainConfigBasic(domainName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckExternalDomainExists(tt, "scaleway_domain_external_domain.test"),
 					resource.TestCheckResourceAttr("scaleway_domain_external_domain.test", "domain", domainName),
 					resource.TestCheckResourceAttrSet("scaleway_domain_external_domain.test", "validation_token"),
 					resource.TestCheckResourceAttrPair(
@@ -45,6 +44,11 @@ func TestAccDataSourceDomainExternalDomain_Basic(t *testing.T) {
 						"scaleway_domain_external_domain.test", "status",
 					),
 				),
+			},
+			{
+				ResourceName:      "scaleway_domain_external_domain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

@@ -3,6 +3,8 @@ package domain_test
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -13,16 +15,17 @@ import (
 	"github.com/scaleway/terraform-provider-scaleway/v2/internal/services/domain"
 )
 
+const testExternalDomainEnv = "TF_TEST_EXTERNAL_DOMAIN"
+
 func TestAccDomainExternalDomainValidated_Basic(t *testing.T) {
-	if acctest.TestDomain == "" {
-		t.Skip("Test skipped: SCW_TEST_DOMAIN must be set")
+	domainName, subdomain, dnsZone, ok := externalDomainTestParts(t)
+	if !ok {
+		return
 	}
 
 	tt := acctest.NewTestTools(t)
 	defer tt.Cleanup()
 
-	subdomain := "tf-acc-ext-validated"
-	domainName := fmt.Sprintf("%s.%s", subdomain, acctest.TestDomain)
 	log.Printf("Testing external domain validation for domain: %s", domainName)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -30,8 +33,9 @@ func TestAccDomainExternalDomainValidated_Basic(t *testing.T) {
 		CheckDestroy:             testAccCheckExternalDomainDestroy(tt),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDomainExternalDomainValidatedConfigBasic(domainName, subdomain),
+				Config: testAccDomainExternalDomainValidatedConfigBasic(domainName, subdomain, dnsZone),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckExternalDomainExists(tt, "scaleway_domain_external_domain.example"),
 					resource.TestCheckResourceAttr("scaleway_domain_external_domain.example", "domain", domainName),
 					resource.TestCheckResourceAttrSet("scaleway_domain_external_domain.example", "validation_token"),
 					resource.TestCheckResourceAttr("scaleway_domain_external_domain_validated.example", "domain", domainName),
@@ -53,8 +57,60 @@ func TestAccDomainExternalDomainValidated_Basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "scaleway_domain_external_domain.example",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "scaleway_domain_external_domain_validated.example",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
+}
+
+func externalDomainTestParts(t *testing.T) (domainName, subdomain, dnsZone string, ok bool) {
+	t.Helper()
+
+	domainName = os.Getenv(testExternalDomainEnv)
+	if domainName == "" {
+		t.Skipf("Test skipped: %s must be set to a FQDN whose parent is not registered at Scaleway", testExternalDomainEnv)
+
+		return "", "", "", false
+	}
+
+	parts := strings.SplitN(domainName, ".", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		t.Fatalf("%s=%q must be a FQDN with at least two labels", testExternalDomainEnv, domainName)
+	}
+
+	return domainName, parts[0], parts[1], true
+}
+
+func testAccCheckExternalDomainExists(tt *acctest.TestTools, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("no ID is set")
+		}
+
+		registrarAPI := domain.NewRegistrarDomainAPI(tt.Meta)
+
+		_, err := registrarAPI.GetDomain(&domainSDK.RegistrarAPIGetDomainRequest{
+			Domain: rs.Primary.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckExternalDomainDestroy(tt *acctest.TestTools) resource.TestCheckFunc {
@@ -84,7 +140,7 @@ func testAccCheckExternalDomainDestroy(tt *acctest.TestTools) resource.TestCheck
 	}
 }
 
-func testAccDomainExternalDomainValidatedConfigBasic(domainName, subdomain string) string {
+func testAccDomainExternalDomainValidatedConfigBasic(domainName, subdomain, dnsZone string) string {
 	return fmt.Sprintf(`
 resource "scaleway_domain_external_domain" "example" {
   domain = "%s"
@@ -105,5 +161,5 @@ resource "scaleway_domain_external_domain_validated" "example" {
 data "scaleway_domain_external_domain" "read" {
   domain = scaleway_domain_external_domain.example.domain
 }
-`, domainName, acctest.TestDomain, subdomain)
+`, domainName, dnsZone, subdomain)
 }
